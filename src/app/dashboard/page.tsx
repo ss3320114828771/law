@@ -2,24 +2,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Metadata } from "next";
 import Link from "next/link";
-import { 
-  Calendar, 
-  Scale, 
-  Users, 
-  DollarSign, 
-  Clock, 
-  FileText, 
-  AlertCircle 
-} from "lucide-react"; // ← tiny icons lib, install: npm install lucide-react
-
-// Optional: if you don't want extra package, replace with emoji or heroicons/svg
-
-export const metadata: Metadata = {
-  title: "Client Dashboard | Advocate Hafiz Sajid Hussain",
-  description: "View your active cases, upcoming hearings, documents, and account status.",
-};
+import {
+  Calendar,
+  Scale,
+  Users,
+  DollarSign,
+  Clock,
+  FileText,
+  AlertCircle,
+  ChevronRight,
+} from "lucide-react";
 
 type Case = {
   id: string;
@@ -30,54 +23,40 @@ type Case = {
   priority?: "High" | "Medium" | "Low";
 };
 
+type Stats = {
+  activeCases: number;
+  activeClients: number;
+  totalRevenue: string;
+  pendingTasks: number;
+};
+
 export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Simulate auth check (replace with real session / cookie / next-auth later)
   useEffect(() => {
+    // ← Replace with real auth later (next-auth, clerk, supabase, etc.)
     const timer = setTimeout(() => {
-      // In real app: check localStorage, cookies, or API
-      const mockLoggedIn = true; // ← change to false to test redirect
+      const mockLoggedIn = true; // change to false to test logged-out view
       setIsAuthenticated(mockLoggedIn);
       setLoading(false);
-    }, 800);
+    }, 900);
 
     return () => clearTimeout(timer);
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-indigo-500 rounded-full border-t-transparent" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
-        <AlertCircle className="h-16 w-16 text-red-500 mb-6" />
-        <h2 className="text-3xl font-bold text-slate-800 mb-4">
-          Access Denied
-        </h2>
-        <p className="text-lg text-slate-600 mb-8 max-w-md">
-          Please log in to view your client dashboard and case details.
-        </p>
-        <Link
-          href="/login"
-          className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
-        >
-          Go to Login
-        </Link>
-      </div>
-    );
+    return <UnauthorizedState />;
   }
 
-  // Mock data – replace with real API fetch later
-  const stats = {
+  // Mock data – replace with API fetch in real app
+  const stats: Stats = {
     activeCases: 7,
-    activeClients: 4, // if multi-client access
+    activeClients: 4,
     totalRevenue: "PKR 1,245,800",
     pendingTasks: 3,
   };
@@ -94,167 +73,226 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="container mx-auto px-6 py-10 md:py-16">
-      {/* Welcome Header */}
-      <div className="mb-10">
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-          Welcome back, Client
+    <div className="container mx-auto px-5 sm:px-6 lg:px-8 py-10 lg:py-16 min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+      {/* Header */}
+      <header className="mb-10">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          Welcome back
         </h1>
-        <p className="mt-2 text-slate-600">
-          Here's an overview of your cases and upcoming activities • February 01, 2026
+        <p className="mt-2 text-slate-600 dark:text-slate-400">
+          Your cases & upcoming court activity •{" "}
+          {new Date().toLocaleDateString("en-PK", { dateStyle: "medium" })}
         </p>
+      </header>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 mb-12">
+        <StatCard title="Active Cases" value={stats.activeCases} icon={Scale} color="indigo" />
+        <StatCard title="Active Clients" value={stats.activeClients} icon={Users} color="teal" />
+        <StatCard title="Total Billed" value={stats.totalRevenue} icon={DollarSign} color="emerald" />
+        <StatCard title="Pending Tasks" value={stats.pendingTasks} icon={Clock} color="amber" />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <div className="glass rounded-2xl p-6 border border-slate-200/50 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Active Cases</p>
-              <p className="text-3xl font-bold text-indigo-700 mt-1">{stats.activeCases}</p>
-            </div>
-            <Scale className="h-10 w-10 text-indigo-500 opacity-80" />
+      <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
+        <DashboardCard title="Upcoming Hearings" icon={Calendar}>
+          <div className="space-y-4">
+            {upcomingHearings.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">No upcoming hearings</p>
+            ) : (
+              upcomingHearings.map((item) => (
+                <CaseItem key={item.id} {...item} isHearing />
+              ))
+            )}
           </div>
-        </div>
-
-        <div className="glass rounded-2xl p-6 border border-slate-200/50 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Active Clients</p>
-              <p className="text-3xl font-bold text-teal-600 mt-1">{stats.activeClients}</p>
-            </div>
-            <Users className="h-10 w-10 text-teal-500 opacity-80" />
-          </div>
-        </div>
-
-        <div className="glass rounded-2xl p-6 border border-slate-200/50 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Total Billed</p>
-              <p className="text-3xl font-bold text-emerald-600 mt-1">{stats.totalRevenue}</p>
-            </div>
-            <DollarSign className="h-10 w-10 text-emerald-500 opacity-80" />
-          </div>
-        </div>
-
-        <div className="glass rounded-2xl p-6 border border-slate-200/50 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Pending Tasks</p>
-              <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingTasks}</p>
-            </div>
-            <Clock className="h-10 w-10 text-amber-500 opacity-80" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Upcoming Hearings */}
-        <div className="glass rounded-2xl p-8 border border-slate-200/50 shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-800">Upcoming Hearings</h2>
-            <Calendar className="h-6 w-6 text-indigo-600" />
-          </div>
-
-          <div className="space-y-5">
-            {upcomingHearings.map((hearing) => (
-              <div
-                key={hearing.id}
-                className="flex items-start justify-between p-4 bg-slate-50/70 rounded-xl border border-slate-200 hover:border-indigo-300 transition-colors"
-              >
-                <div>
-                  <p className="font-semibold text-slate-800">{hearing.title}</p>
-                  <p className="text-sm text-slate-600 mt-1">
-                    {hearing.type} • {hearing.date}
-                  </p>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    hearing.priority === "High"
-                      ? "bg-red-100 text-red-700"
-                      : hearing.priority === "Medium"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {hearing.status}
-                </span>
-              </div>
-            ))}
-          </div>
-
           <div className="mt-6 text-center">
             <Link
-              href="#"
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              href="/dashboard/hearings"
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
             >
-              View Full Court Schedule →
+              View full schedule <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-        </div>
+        </DashboardCard>
 
-        {/* Recent Activity / Cases */}
-        <div className="glass rounded-2xl p-8 border border-slate-200/50 shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-800">Recent Cases</h2>
-            <FileText className="h-6 w-6 text-indigo-600" />
+        <DashboardCard title="Recent Cases" icon={FileText}>
+          <div className="space-y-4">
+            {recentCases.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">No recent cases</p>
+            ) : (
+              recentCases.map((item) => <CaseItem key={item.id} {...item} />)
+            )}
           </div>
-
-          <div className="space-y-5">
-            {recentCases.map((caseItem) => (
-              <div
-                key={caseItem.id}
-                className="p-4 bg-slate-50/70 rounded-xl border border-slate-200 hover:border-indigo-300 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-semibold text-slate-800">{caseItem.title}</p>
-                    <p className="text-sm text-slate-600 mt-1">
-                      {caseItem.type} • {caseItem.date}
-                    </p>
-                  </div>
-                  <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
-                    {caseItem.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div className="mt-6 text-center">
             <Link
-              href="#"
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              href="/dashboard/cases"
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
             >
-              View All Cases →
+              View all cases <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-        </div>
+        </DashboardCard>
       </div>
 
       {/* Quick Actions */}
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center md:text-left">
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6 text-center lg:text-left">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
           {[
-            { label: "New Case Inquiry", icon: Scale, href: "#" },
-            { label: "Upload Document", icon: FileText, href: "#" },
-            { label: "Schedule Meeting", icon: Calendar, href: "#" },
-            { label: "View Invoices", icon: DollarSign, href: "#" },
-          ].map((action, idx) => (
+            { label: "New Case Inquiry", icon: Scale, href: "/dashboard/new-case" },
+            { label: "Upload Document", icon: FileText, href: "/dashboard/documents/upload" },
+            { label: "Schedule Meeting", icon: Calendar, href: "/dashboard/meetings/new" },
+            { label: "View Invoices", icon: DollarSign, href: "/dashboard/billing" },
+          ].map((action) => (
             <Link
-              key={idx}
+              key={action.label}
               href={action.href}
-              className="glass rounded-xl p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all border border-slate-200/50"
+              className="group relative flex flex-col items-center justify-center p-6 bg-white/70 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-2xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-all hover:shadow-xl hover:-translate-y-1"
             >
-              <action.icon className="h-8 w-8 mx-auto mb-3 text-indigo-600" />
-              <p className="font-medium text-slate-800">{action.label}</p>
+              <action.icon className="h-9 w-9 text-indigo-600 dark:text-indigo-400 mb-3 transition-transform group-hover:scale-110" />
+              <span className="font-medium text-slate-800 dark:text-slate-200 text-center">
+                {action.label}
+              </span>
             </Link>
           ))}
         </div>
+      </section>
+    </div>
+  );
+}
+
+/* ── Reusable Components ── */
+
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string | number;
+  icon: any;
+  color: "indigo" | "teal" | "emerald" | "amber";
+}) {
+  const colorMap = {
+    indigo: "text-indigo-600 dark:text-indigo-400",
+    teal: "text-teal-600 dark:text-teal-400",
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    amber: "text-amber-600 dark:text-amber-400",
+  };
+
+  return (
+    <div className="bg-white/70 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold mt-1.5 text-slate-900 dark:text-slate-50">
+            {value}
+          </p>
+        </div>
+        <Icon className={`h-10 w-10 ${colorMap[color]} opacity-90`} />
       </div>
+    </div>
+  );
+}
+
+function DashboardCard({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: any;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white/70 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-6 sm:p-8 shadow-md hover:shadow-lg transition-shadow">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+        <Icon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function CaseItem({ title, type, date, status, priority, isHearing = false }: Case & { isHearing?: boolean }) {
+  const statusColor = {
+    Active: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+    Pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    Hearing: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    Settled: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  }[status];
+
+  const priorityColor = {
+    High: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+    Medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    Low: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  };
+
+  return (
+    <div className="p-4 bg-slate-50/70 dark:bg-slate-800/30 rounded-xl border border-slate-200/80 dark:border-slate-700/60 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-900 dark:text-slate-100">{title}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            {type} • {date}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor}`}>
+            {status}
+          </span>
+          {priority && isHearing && (
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColor[priority]}`}>
+              {priority}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="container mx-auto px-6 py-16">
+      <div className="h-10 w-64 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse mb-10" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <div key={i} className="h-32 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse" />
+          ))}
+      </div>
+      <div className="grid lg:grid-cols-2 gap-8">
+        {Array(2)
+          .fill(0)
+          .map((_, i) => (
+            <div key={i} className="h-80 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse" />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function UnauthorizedState() {
+  return (
+    <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
+      <AlertCircle className="h-20 w-20 text-red-500 mb-8 animate-pulse" />
+      <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-200 mb-5">
+        Access Denied
+      </h2>
+      <p className="text-lg text-slate-600 dark:text-slate-400 mb-10 max-w-md">
+        Please sign in to view your client dashboard, cases, hearings and documents.
+      </p>
+      <Link
+        href="/login"
+        className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
+      >
+        Sign In to Dashboard
+      </Link>
     </div>
   );
 }
